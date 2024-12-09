@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Group 21 - Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .analytics-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .analysis-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .metric-card {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .recommendations-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .recommendation-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .recommendation-item:last-child {
+            border-bottom: none;
+        }
+
+        .chart-container {
+            height: 400px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <h1>Group 21 - Retail Analytics</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('search_page') }}">Search</a>
+                <a href="{{ url_for('dashboard_page') }}">Dashboard</a>
+                <a href="{{ url_for('analytics_page') }}">Analytics</a>
+                <a href="{{ url_for('upload_page') }}">Upload Data</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </nav>
+    </header>
+
+    <div class="analytics-container">
+        {% if data.get('error') %}
+            <div class="analysis-section">
+                <p>{{ data.error }}</p>
+            </div>
+        {% else %}
+            <!-- Basket Analysis Section -->
+            <div class="analysis-section">
+                <h2>Basket Analysis</h2>
+                <p>Top product combinations and cross-selling opportunities</p>
+
+                <!-- Product Combinations Chart -->
+                <div id="productCombosChart" class="chart-container"></div>
+
+                <!-- Top Recommendations -->
+                <h3>Top Recommendations</h3>
+                <ul class="recommendations-list">
+                    {% for rec in data.basket_analysis.recommendations[:5] %}
+                    <li class="recommendation-item">
+                        <strong>If customer buys:</strong> {{ rec.antecedents|join(', ') }}<br>
+                        <strong>Likely to buy:</strong> {{ rec.consequents|join(', ') }}<br>
+                        <strong>Confidence:</strong> {{ "%.1f"|format(rec.confidence * 100) }}%<br>
+                        <strong>Lift:</strong> {{ "%.2f"|format(rec.lift) }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Churn Prediction Section -->
+            <div class="analysis-section">
+                <h2>Churn Analysis</h2>
+                <p>Customer churn prediction and risk analysis</p>
+
+                <!-- Churn Metrics -->
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{{ "%.1f"|format(data.churn_prediction.metrics.churn_rate * 100) }}%</div>
+                        <div class="metric-label">Churn Rate</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{ "%.1f"|format(data.churn_prediction.metrics.accuracy * 100) }}%</div>
+                        <div class="metric-label">Model Accuracy</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{ data.churn_prediction.risk_levels.high_risk }}</div>
+                        <div class="metric-label">High Risk Customers</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{ data.churn_prediction.risk_levels.medium_risk }}</div>
+                        <div class="metric-label">Medium Risk Customers</div>
+                    </div>
+                </div>
+
+                <!-- Risk Distribution Chart -->
+                <div id="riskDistributionChart" class="chart-container"></div>
+
+                <!-- Feature Importance Chart -->
+                <div id="featureImportanceChart" class="chart-container"></div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Product Combinations Chart
+        const productPairsData = {
+            x: {{ data.basket_analysis.product_pairs|map(attribute='product1')|list|tojson }},
+            y: {{ data.basket_analysis.product_pairs|map(attribute='confidence')|list|tojson }},
+            type: 'bar',
+            marker: {
+                color: '#2563eb'
+            }
+        };
+
+        Plotly.newPlot('productCombosChart', [productPairsData], {
+            title: 'Top Product Combinations',
+            xaxis: {title: 'Product Pairs'},
+            yaxis: {title: 'Confidence', tickformat: '.1%'}
+        });
+
+        // Risk Distribution Chart
+        const riskData = {
+            values: [
+                {{ data.churn_prediction.risk_levels.high_risk }},
+                {{ data.churn_prediction.risk_levels.medium_risk }},
+                {{ data.churn_prediction.risk_levels.low_risk }}
+            ],
+            labels: ['High Risk', 'Medium Risk', 'Low Risk'],
+            type: 'pie',
+            marker: {
+                colors: ['#ef4444', '#f97316', '#22c55e']
+            }
+        };
+
+        Plotly.newPlot('riskDistributionChart', [riskData], {
+            title: 'Customer Risk Distribution'
+        });
+
+        // Feature Importance Chart
+        const featureData = {
+            x: Object.values({{ data.churn_prediction.feature_importance|tojson }}),
+            y: Object.keys({{ data.churn_prediction.feature_importance|tojson }}),
+            type: 'bar',
+            orientation: 'h',
+            marker: {
+                color: '#2563eb'
+            }
+        };
+
+        Plotly.newPlot('featureImportanceChart', [featureData], {
+            title: 'Feature Importance in Churn Prediction',
+            xaxis: {title: 'Importance Score'},
+            margin: {l: 150}
+        });
+    </script>
+</body>
+</html>

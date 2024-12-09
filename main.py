@@ -388,25 +388,16 @@ def analytics_page():
     try:
         logger.info("Starting analytics page generation")
         
-        # Try basket analysis with error logging
-        try:
-            logger.info("Starting basket analysis")
-            basket_insights = perform_basket_analysis()
-            logger.info("Basket analysis completed")
-        except Exception as e:
-            logger.error(f"Basket analysis failed: {str(e)}")
-            basket_insights = None
+        # Get ML insights
+        logger.info("Starting basket analysis")
+        basket_insights = perform_basket_analysis()
+        logger.info("Basket analysis completed")
+        
+        logger.info("Starting churn prediction")
+        churn_insights = predict_customer_churn()
+        logger.info("Churn prediction completed")
 
-        # Try churn prediction with error logging
-        try:
-            logger.info("Starting churn prediction")
-            churn_insights = predict_customer_churn()
-            logger.info("Churn prediction completed")
-        except Exception as e:
-            logger.error(f"Churn prediction failed: {str(e)}")
-            churn_insights = None
-
-        # Prepare default data structure
+        # Prepare default structure
         analytics_data = {
             'basket_analysis': {
                 'recommendations': [],
@@ -414,11 +405,11 @@ def analytics_page():
             },
             'churn_prediction': {
                 'metrics': {
-                    'churn_rate': 0.0,
                     'accuracy': 0.0,
                     'precision': 0.0,
                     'recall': 0.0,
-                    'f1_score': 0.0
+                    'f1_score': 0.0,
+                    'churn_rate': 0.0
                 },
                 'risk_levels': {
                     'high_risk': 0,
@@ -429,17 +420,14 @@ def analytics_page():
             }
         }
 
-        # Update with basket analysis results if available
-        if basket_insights:
-            logger.info("Updating basket insights")
-            if 'recommendations' in basket_insights:
-                analytics_data['basket_analysis']['recommendations'] = basket_insights['recommendations']
-            if 'product_pairs' in basket_insights:
-                analytics_data['basket_analysis']['product_pairs'] = basket_insights['product_pairs']
+        # Update with actual results if available
+        logger.info("Updating basket insights")
+        if basket_insights and 'recommendations' in basket_insights:
+            analytics_data['basket_analysis']['recommendations'] = basket_insights['recommendations']
+            analytics_data['basket_analysis']['product_pairs'] = basket_insights['product_pairs']
 
-        # Update with churn prediction results if available
+        logger.info("Updating churn insights")
         if churn_insights:
-            logger.info("Updating churn insights")
             if 'metrics' in churn_insights:
                 analytics_data['churn_prediction']['metrics'] = churn_insights['metrics']
             if 'customer_risk' in churn_insights:
@@ -451,25 +439,21 @@ def analytics_page():
         return render_template('analytics.html', data=analytics_data)
 
     except Exception as e:
-        error_msg = f"Analytics generation error: {str(e)}"
-        logger.error(error_msg)
+        logger.error(f"Analytics generation error: {str(e)}")
         logger.exception("Full traceback:")
-        
-        # Return minimal data structure
         return render_template('analytics.html', 
                              data={
-                                 'error': 'Unable to load analytics data. Please try again later.',
                                  'basket_analysis': {
                                      'recommendations': [],
                                      'product_pairs': []
                                  },
                                  'churn_prediction': {
                                      'metrics': {
-                                         'churn_rate': 0,
-                                         'accuracy': 0,
-                                         'precision': 0,
-                                         'recall': 0,
-                                         'f1_score': 0
+                                         'accuracy': 0.0,
+                                         'precision': 0.0,
+                                         'recall': 0.0,
+                                         'f1_score': 0.0,
+                                         'churn_rate': 0.0
                                      },
                                      'risk_levels': {
                                          'high_risk': 0,
@@ -479,7 +463,6 @@ def analytics_page():
                                      'feature_importance': {}
                                  }
                              })
-    
 @app.route('/upload-page')
 def upload_page():
     """Display the upload page"""
