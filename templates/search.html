@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Group 21 - Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Additional styles for table responsiveness */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 1rem;
+            /* Smooth scrolling for better UX */
+            scroll-behavior: smooth;
+            /* Hide scrollbar in Firefox */
+            scrollbar-width: thin;
+            /* Add some padding bottom for scrollbar */
+            padding-bottom: 6px;
+        }
+
+        /* Styles for Webkit browsers (Chrome, Safari) scrollbar */
+        .table-container::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Make table take full width of container */
+        .table-container table {
+            margin: 0;
+            min-width: 100%;
+            border-collapse: collapse;
+            white-space: nowrap;
+        }
+
+        /* Fix header cells */
+        .table-container th {
+            background: var(--bg-color);
+            position: sticky;
+            top: 0;
+        }
+
+        /* Add some minimal padding to cells */
+        .table-container td, 
+        .table-container th {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Ensure form elements have proper spacing */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        /* Style number input */
+        input[type="number"] {
+            width: 100%;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+<header class="header">
+    <nav class="nav">
+        <h1>Group 21 - Retail Analytics</h1>
+        <div class="nav-links">
+            <a href="{{ url_for('search_page') }}">Search</a>
+            <a href="{{ url_for('dashboard_page') }}">Dashboard</a>
+            <a href="{{ url_for('analytics_page') }}">Analytics</a>
+            <a href="{{ url_for('upload_page') }}">Upload Data</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </nav>
+</header>
+
+<div class="container">
+    <div class="card">
+        <h2>Search Transactions by Household</h2>
+        <form method="POST">
+            <div class="form-group">
+                <label>Household Number</label>
+                <input type="number" name="hshd_num" required min="1"/>
+            </div>
+            <button class="btn">Search</button>
+        </form>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="card">
+        <h3>Search Results</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>HSHD_NUM</th>
+                    <th>BASKET_NUM</th>
+                    <th>DATE</th>
+                    <th>PRODUCT_NUM</th>
+                    <th>DEPARTMENT</th>
+                    <th>COMMODITY</th>
+                    <th>SPEND</th>
+                    <th>UNITS</th>
+                    <th>STORE_REGION</th>
+                    <th>WEEK_NUM</th>
+                    <th>YEAR</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in results %}
+                <tr>
+                    <td>{{ row.HSHD_NUM }}</td>
+                    <td>{{ row.BASKET_NUM }}</td>
+                    <td>{{ row.DATE.strftime('%Y-%m-%d') if row.DATE }}</td>
+                    <td>{{ row.PRODUCT_NUM }}</td>
+                    <td>{{ row.DEPARTMENT }}</td>
+                    <td>{{ row.COMMODITY }}</td>
+                    <td>${{ "%.2f"|format(row.SPEND) }}</td>
+                    <td>{{ row.UNITS }}</td>
+                    <td>{{ row.STORE_REGION }}</td>
+                    <td>{{ row.WEEK_NUM }}</td>
+                    <td>{{ row.YEAR }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+</body>
+</html>
